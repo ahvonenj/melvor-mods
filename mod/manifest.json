@@ -1,0 +1,4 @@
+{
+    "namespace": "wikiItemDescriptions",
+    "setup": "setup.mjs"
+}
