@@ -10,7 +10,8 @@ Most MI APIs can be found under the `game` global object, while `window` contain
 Counter-intuitively perhaps, there is no `game.player` object. The game treats the concept of `player` as mostly combat-related
 and this data is stored in `game.combat.player`.
 
-I will provide a general API overview and some API breakdowns below.
+As for all of the other "player data", the game breaks it down into multiple APIs / classes / objects. 
+Below you can find a General API overview and some API breakdowns.
 
 ### API Overview
 
