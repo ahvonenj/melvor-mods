@@ -114,11 +114,11 @@ For example, information about slayer task completion status can be found in `ga
 
 You might be wondering why writing something like `game.monsters` into the console window does not actually give any sensible results about the monsters of the game, but instead you are greeted with this `NamespaceRegistry`-object.
 
-These `NamespaceRegistry` objects are sort of interable wrappers / containers for whatever data they are supposed to contain. To put it simply, instead of `game.monsters` being an array like:
+These `NamespaceRegistry` objects are sort of wrappers / containers for data. To put it simply, instead of `game.monsters` being an array like:
 
 `game.monsters = [new Monster(), new Monster()]`
 
-It is instead an object wrapper like:
+It is instead a wrapper object like so:
 
 ```js
 class MonstersWrapper {
@@ -170,11 +170,11 @@ The first file, `gameData.json` is a schema file, which mainly contains structur
 
 The game data itself is separated into the `melvorDemo`, `melvorFull` and `melvorTotH` json-files. These files together basically form a _database_ for the game. `melvorTotH.json` contains data related to the Throne of the Herald expansion and, e.g. the items of that expansion specifically. As for the `melvorDemo` and `melvorFull` files... well they contain everything else, so the non-expansion data, but it is not very clear whether you'll find your Shark healing data from the former or from the latter - there's a trick you can use though (or just trial and error).
 
-If you would like to know how the game knows how much a shark heals, you should start by basically `CTRL+F`ing the `gameData,json` file for "Shark". You want to know the ID of the Shark item and searching for it should return something like `"melvorD:Shark"`. Now the important thing to note here is the prefix `melvorD:` - this prefix can be one of `melvorD`, `melvorF` or `melvorTotH` and by looking at this id, you now know where the item data iself is located.
+If you would like to know how the game knows how much a shark heals, you should start by basically `CTRL+F`ing the `gameData.json` file for "Shark". You want to know the ID of the Shark item and searching for it should return something like `"melvorD:Shark"`. Now the important thing to note here is the prefix `melvorD:` - this prefix can be one of `melvorD`, `melvorF` or `melvorTotH` and by looking at this id, you now know where the item data iself is located.
 
 `melvorD` corresponds to the `melvorDemo.json`, `melvorF` corresponds to the `melvorFull.json` and lastly `melvorTotH` corresponds to the `melvorTotH.json` file.
 
-Now that you can the item ID of the shark, `melvorD:Shark` and you know to search for this id in the `melvorDemo.json` file, you can go do just that. You can search with both `melvorD:Shark` and just `Shark` and you should eventually bump into something like this:
+Now that you have the item ID for the shark, `melvorD:Shark`, and you know to search for this id in the `melvorDemo.json` file, you can go do just that. You can search with both `melvorD:Shark` and just `Shark` and you should eventually bump into something like this:
 
 ```json
 {
