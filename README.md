@@ -15,7 +15,7 @@ Below you can find a General API overview and some API breakdowns.
 
 ### API Overview
 
-Each of the following APIs exist under the `game` object.
+Each of the following APIs exist under the `game` object (as `game.bank`, `game.items`, ... experiment a little).
 
 - Player Skill APIs (within `game.<skillname>` objects)
 - Skills (`game.skills`, skill data)
