@@ -75,7 +75,14 @@ for example, `game.agility` object contains properties and methods relating to t
 
 ```js
 const crab = game.monsters.getObjectByID("melvorD:GiantCrab");
-const drops = crab.lootTable.drops.map(drop => ({ name: drop.item.name, minQnt: drop.minQuantity, maxQnt: drop.maxQuantity }));
+
+const drops = crab.lootTable.drops
+.map(drop => ({ 
+    name: drop.item.name, 
+    minQnt: drop.minQuantity, 
+    maxQnt: drop.maxQuantity 
+}));
+
 console.table(drops);
 ```
 
