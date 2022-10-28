@@ -49,6 +49,10 @@ Each of the following APIs exist under the `game` object.
 APIs relating to different skills are mostly located directly under the `game` object, so
 for example, `game.agility` object contains properties and methods relating to the Agility skill.
 
+**Usage Example - Setting Skill XP:**
+
+`game.agility.setXP(<value>)`
+
 ### Bank
 ### Spells
 ### Combat Areas
@@ -62,6 +66,26 @@ for example, `game.agility` object contains properties and methods relating to t
 ### Minibar
 ### Monster Areas
 ### Monsters
+
+**Usage Example - Finding monster object by ID:**
+
+`game.monsters.getObjectByID("melvorD:HillGiant")`
+
+**Usage Example - Printing out Giant Crab loot table:**
+
+```js
+const crab = game.monsters.getObjectByID("melvorD:GiantCrab");
+const drops = crab.lootTable.drops.map(drop => ({ name: drop.item.name, minQnt: drop.minQuantity, maxQnt: drop.maxQuantity }));
+console.table(drops);
+```
+
+Will print out:
+
+| name              | minQnt        | maxQnt        |
+| ----------------- | ------------- | ------------- |
+| "Raw Crab"        | 1             | 2             |
+| "Treasure Chest"  | 1             | 2             |
+
 ### Normal Attack
 ### Pets
 ### Potions
