@@ -156,7 +156,7 @@ Now, truth to be told, you can actually access the underlying array of monsters 
 
 But there is probably a reason for why the wrapper exists, so use this at your own risk.
 
-## Game Data and Entinty IDs
+## Game Data and Entity IDs
 
 So where does all the game data actually come from? How does the game know how much Dragon Javelin costs or how much a Shark heals? The answers lie in the following `.json` files:
 
