@@ -1,0 +1,4 @@
+{
+    "namespace": "ModName",
+    "setup": "setup.mjs"
+}
