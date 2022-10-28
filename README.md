@@ -1,4 +1,4 @@
-# Melvor Mod Help
+# Melvor Idle Modding Reference
 
 ## APIs
 
