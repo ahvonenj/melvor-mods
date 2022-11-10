@@ -1,7 +1,8 @@
 export async function setup(ctx) {
-    const { myModule } = await ctx.loadModule('myModule.mjs');
+    const { LocalMods } = await ctx.loadModule('LocalMods.mjs');
 
-    ctx.patch(Class, 'FunctionName').before(() => {    
-        
-    });
+    ctx.onInterfaceReady(ctx => {
+        console.log("UI RDY");
+        const localMods = new LocalMods();
+    }); 
 }
