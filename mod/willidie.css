@@ -4,7 +4,7 @@
     height: 25px;
     top: 10px;
     right: 10px;
-    background-color: #273c75;
+    background-color: #3261cf;
     box-shadow: 0 1px 3px rgb(0 0 0 / 16%), 0 1px 3px rgb(0 0 0 / 23%);
     text-align: center;
     line-height: 25px;
@@ -13,8 +13,65 @@
 }
 
 .combat-resolver-set-area-target:hover {
-    background-color: #6ab04c;
+    background-color: #29a877;
 }
 .combat-resolver-set-area-target.cr-active {
-    background-color: #6ab04c;
+    background-color: #29a877;
+}
+
+.combat-resolver-safe {
+    color: #30c78d !important;
+}
+
+.combat-resolver-danger {
+    color: #df4646 !important;
+}
+
+.combat-resolver-unknown {
+    color: #f5f5f5 !important;
+}
+
+#will-i-die-header-tab-dropdown > .dropdown-header {
+    color: #ecf0f1;
+    font-weight: bold;
+}
+
+.combat-resolver-tab-content {
+    color: #f5f5f5;
+}
+
+.cr-hl {
+    font-weight: bold;
+}
+
+.cr-hl-warn {
+    color: #e56767;
+}
+
+.cr-hl-ok {
+    color: #27ae60;
+}
+
+.cr-hl-enemy {
+    color: #d35400;
+}
+
+.cr-hl-area {
+    color: #f1c40f;
+}
+
+.cr-hl-dmg {
+    color: #e74c3c;
+}
+
+.cr-hl-block {
+    color: #2980b9;
+}
+
+.cr-hl-spec {
+    color: #9b59b6;
+}
+
+.cr-hl-health {
+    color: #16a085;
 }

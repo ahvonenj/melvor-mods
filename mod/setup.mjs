@@ -1,9 +1,18 @@
 export async function setup(ctx) {
+    
+    // Load CombatResolver module
     const { CombatResolver } = await ctx.loadModule('CombatResolver.mjs');
+
+    // Load styles
     ctx.loadStylesheet('willidie.css');
 
+    // Instantiate CombatResolver
     const combatResolver = new CombatResolver();
 
+    // Patch and replace CombatAreaMenu.prototype.createMenuElement method
+    // This one allows us to inject our own HTML at a very specific time
+    // when the game renders combat area selection grid.
+    // We use this "injection window" to inject the "T" buttons
     ctx.patch(CombatAreaMenu, 'createMenuElement').replace(function (fnBody, areaData, id) {    
         const openButton = this.container.appendChild(createElement('div', {
             classList: ['col-12', 'col-md-6', 'col-xl-4']
@@ -101,4 +110,16 @@ export async function setup(ctx) {
         openButton.onclick = ()=>this.toggleTable(areaData, menuElem);
         this.menuElems.set(areaData, menuElem);
     });
+
+    // Patch Player.prototype.computeAllStats
+    // This is so that we can call recalculateSurvivability() when player's stats change
+    ctx.patch(Player, 'computeAllStats').after(() => {
+        combatResolver.recalculateSurvivability();
+    });
+
+    // Hook to onInterfaceReady
+    // We use this event to create our header component for this mod
+    ctx.onInterfaceReady(() => {
+        combatResolver._createHeaderComponent();
+    })
 }
