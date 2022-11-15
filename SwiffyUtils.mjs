@@ -38,11 +38,11 @@ export const createTestMonster = (game, monsterID) => {
 	// Compute normal attack max hit
 	monster.computeMaxHit();
 
-	// Add the computed max hit to the monsterDamageData object
-	monsterDamageData.normalAttackMaxHit = monster.stats.maxHit;
-
 	// Compute all combat stats just in case or something
 	monster.computeCombatStats()
+
+	// Add the computed max hit to the monsterDamageData object
+	monsterDamageData.normalAttackMaxHit = monster.stats.maxHit;
 	
 	// This might be needed, but disabled for now
 	//if(monster.availableAttacks.length === 1 && monster.availableAttacks[0].attack === game.normalAttack)
