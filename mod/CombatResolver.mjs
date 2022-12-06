@@ -8,7 +8,7 @@ export class CombatResolver {
     tabContent = null;
     
     headerComponentCreated = false;
-    _debug = true;
+    _debug = false;
 
     constructor() {
 
@@ -265,16 +265,43 @@ export class CombatResolver {
             let monsterStyle = monsterDamageData.monster.attackType;
             let triangleMult = this._combatTriangleMultiplier(playerStyle, monsterStyle);
             let stunMult = 1;
+            let sleepMult = 1;
+            let freezeMult = 1;
 
             monsterDamageData.specialAttacks.forEach(spec => {
                 // Native special attack data
                 const ogSpec = spec.originalSpec;
+
+                // When you are sleeping, monsters hit for 20% more
+                // We're calculating the worst-case-scenario, so if a monster can sleep with any attack,
+                // we assume that the 20% always applies
+                if(ogSpec.onhitEffects.some((e) => e.type === "Sleep") ||
+                ogSpec.prehitEffects.some((e) => e.type === "Sleep")) {
+                    sleepMult = 1.2;
+                    return;
+                }
+
+                // When you are frozen, monsters hit for 30% more
+                // We're calculating the worst-case-scenario, so if a monster can freeze with any attack,
+                // we assume that the 20% always applies
+                if(ogSpec.onhitEffects.some((e) => e.type === "Freeze") ||
+                ogSpec.prehitEffects.some((e) => e.type === "Freeze")) {
+                    // If something can freeze, sleepMult is useless, so set it to 1
+                    sleepMult = 1;
+                    freezeMult = 1.3;
+                    return;
+                }
 
                 // When you are stunned, monsters hit for 30% more
                 // We're calculating the worst-case-scenario, so if a monster can stun with any attack,
                 // we assume that the 30% always applies
                 if(ogSpec.onhitEffects.some((e) => e.type === "Stun") ||
                 ogSpec.prehitEffects.some((e) => e.type === "Stun")) {
+                    // If something can stun, sleepMult is useless, so set it to 1
+                    sleepMult = 1;
+                    // If something can stun, freezeMult is useless, so set it to 1
+                    freezeMult = 1;
+
                     stunMult = 1.3;
                     return;
                 }
@@ -282,7 +309,7 @@ export class CombatResolver {
 
             // Effective normal attack max hit, when we take triangle multiplier into account
             // ASSUMES PLAYER DR TO BE 0
-            const effectiveMaxHit = monsterDamageData.normalAttackMaxHit * triangleMult * stunMult;
+            const effectiveMaxHit = monsterDamageData.normalAttackMaxHit * triangleMult * stunMult * sleepMult * freezeMult;
             
             survivabilityData.monsters[mName] = {
                 name: mName,
@@ -315,7 +342,7 @@ export class CombatResolver {
 
             // Check special attacks
             monsterDamageData.specialAttacks.forEach(spec => {
-                const effectiveMaxHit = spec.attackMaxHit * stunMult * triangleMult;
+                const effectiveMaxHit = spec.attackMaxHit * triangleMult * stunMult * sleepMult * freezeMult;
 
                 survivabilityData.monsters[mName].status[spec.attackName] = {};
                 survivabilityData.monsters[mName].status[spec.attackName].stun = stunMult > 1;
@@ -324,14 +351,14 @@ export class CombatResolver {
                 game.combat.player.computeDamageReduction();
 
                 survivabilityData.monsters[mName].status[spec.attackName].maxHitReduced = 
-                Math.ceil(spec.attackMaxHit * stunMult * triangleMult * (1 - (game.combat.player.stats.damageReduction / 100)));
+                Math.ceil(spec.attackMaxHit * triangleMult * stunMult * sleepMult * freezeMult * (1 - (game.combat.player.stats.damageReduction / 100)));
 
                 if(effectiveMaxHit > currentMaxHit) {
                     currentMaxHit = effectiveMaxHit;
                     game.combat.player.computeDamageReduction();
                     currentReduced = Math.ceil(currentMaxHit * (1 - (game.combat.player.stats.damageReduction / 100)));
                     maxHitReason = {
-                        explain: `[${mName}] -> <${spec.attackName.toUpperCase()} (Max: ${currentMaxHit}, Red: ${currentReduced}) !STUN! >`,
+                        explain: `[${mName}] -> <${spec.attackName.toUpperCase()} (Max: ${currentMaxHit}, Red: ${currentReduced})>`,
                         monsterName: mName,
                         attack: spec.attackName.toUpperCase()
                     }
