@@ -61,29 +61,42 @@ export async function setup(ctx) {
         hideElement(table);
 
         // --------------------------------------- OVERRIDE ---------------------------------------
-        const resolverAreaTargetButton = openButton.appendChild(createElement('div', {
-            classList: ['combat-resolver-set-area-target'],
-            text: "T"
-        }))
+        let render = true;
 
-        resolverAreaTargetButton.onclick = (e) => { 
-            e.preventDefault(); 
-            e.stopPropagation();
+        // if (areaData instanceof Dungeon) {
+        //     if (areaData.unlockRequirement !== undefined) {
+        //         if (!game.checkRequirements(areaData.unlockRequirement)) {
+        //             render = false;
+        //         }
+        //     }
+        // }
 
-            if(e.target.classList.contains('cr-active')) {
-                combatResolver.setTargetArea(null);
-                e.target.classList.remove('cr-active');
-                return;
+        if (render) {
+            const resolverAreaTargetButton = openButton.appendChild(createElement('div', {
+                classList: ['combat-resolver-set-area-target'],
+                text: "T"
+            }))
+    
+            resolverAreaTargetButton.onclick = (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+    
+                if(e.target.classList.contains('cr-active')) {
+                    combatResolver.setTargetArea(null);
+                    e.target.classList.remove('cr-active');
+                    return;
+                }
+    
+                combatResolver.setTargetArea(areaData); 
+    
+                document.querySelectorAll('.combat-resolver-set-area-target').forEach((e) => {
+                    e.classList.remove('cr-active');
+                })
+                
+                e.target.classList.add('cr-active');
             }
-
-            combatResolver.setTargetArea(areaData); 
-
-            document.querySelectorAll('.combat-resolver-set-area-target').forEach((e) => {
-                e.classList.remove('cr-active');
-            })
-            
-            e.target.classList.add('cr-active');
         }
+        
 
         // --------------------------------------- !OVERRIDE! -------------------------------------
 
