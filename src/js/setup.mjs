@@ -1,10 +1,7 @@
-export async function setup(ctx) {
-    
-    // Load CombatResolver module
-    const { CombatResolver } = await ctx.loadModule('CombatResolver.mjs');
+import { CombatResolver } from "./CombatResolver.mjs";
+import '../css/willidie.css';
 
-    // Load styles
-    ctx.loadStylesheet('willidie.css');
+export async function setup(ctx) {
 
     // Instantiate CombatResolver
     const combatResolver = new CombatResolver();
@@ -98,22 +95,31 @@ export async function setup(ctx) {
             table: table,
             image: image,
             requirements: reqSpans,
-            fightButtons: buttons,
+            fightButtons: buttons, 
             isOpen: false,
             lockedElems: lockedElems,
             unlockedElems: unlockedElems,
             isEventActive: false,
             eventButton,
             openButton,
-            effectDescription,
+            effectDescription, 
         };
         openButton.onclick = ()=>this.toggleTable(areaData, menuElem);
         this.menuElems.set(areaData, menuElem);
     });
 
-    // Patch Player.prototype.computeAllStats
+    // Patch some Player methods so we can trigger recalculation of survivability
     // This is so that we can call recalculateSurvivability() when player's stats change
-    ctx.patch(Player, 'computeAllStats').after(() => {
+
+    /*ctx.patch(Player, 'computeAllStats').after(() => {
+        combatResolver.recalculateSurvivability();
+    });*/
+
+    ctx.patch(Player, 'updateForEquipmentChange').after(() => {
+        combatResolver.recalculateSurvivability();
+    });
+
+    ctx.patch(Player, 'computeEquipmentStats').after(() => {
         combatResolver.recalculateSurvivability();
     });
 
