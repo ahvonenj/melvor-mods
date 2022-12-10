@@ -12,10 +12,8 @@ export class WIDMonster {
 
     canStun = false;
     canSleep = false;
-    canFreeze = false;
     stunDamageMultiplier = 1;
     sleepDamageMultiplier = 1;
-    freezeDamageMultiplier = 1;
     totalDamageMultiplier = 1;
 
     combatTriangleMultiplier = 1;
@@ -73,7 +71,6 @@ export class WIDMonster {
 
             let canStun = false;
             let canSleep = false;
-            let canFreeze = false;
 
             // When you are stunned, monsters hit for 30% more
             // We're calculating the worst-case-scenario, so if a monster can stun with any attack,
@@ -95,37 +92,39 @@ export class WIDMonster {
                 this.sleepMult = 1.2;
             }
 
-            // When you are frozen, monsters hit for 30% more
-            // We're calculating the worst-case-scenario, so if a monster can freeze with any attack,
-            // we assume that the 20% always applies
-            if(specialAttack.attack.onhitEffects.some((e) => e.type === "Freeze") ||
-            specialAttack.attack.prehitEffects.some((e) => e.type === "Freeze")) {
-                canFreeze = true;
-                this.canFreeze = true;
-                this.freezeMult = 1.3;
-            }
-
-            const maxHit = this.dummyEnemy.getAttackMaxDamage(specialAttack.attack);
-
             this.specialAttacks.push({
                 specialAttackName: specialAttack.attack.name,
-                maxHit,
                 canStun,
                 canSleep,
-                canFreeze,
                 originalSpecialAttack: specialAttack.attack
             });
         });
 
-        if(this.canStun || this.canSleep || this.canFreeze) {
-            this.totalDamageMultiplier = Math.max(this.stunDamageMultiplier, this.sleepDamageMultiplier, this.freezeDamageMultiplier);
+        if(this.canStun || this.canSleep) {
+            this.totalDamageMultiplier = Math.max(this.stunDamageMultiplier, this.sleepDamageMultiplier);
         }
 
-        this.specialAttacks.map(specialAttack => {
+        this.normalAttackMaxHit = this._calculateStandardMaxHit()
+        this.dummyPlayer.computeDamageReduction();
+        this.effectiveNormalAttackMaxHit = Math.ceil(this.normalAttackMaxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
+
+        this.specialAttacks = this.specialAttacks.map(specialAttack => {
+            const maxHit = this._specialAttackDamage(specialAttack.originalSpecialAttack);
             this.dummyPlayer.computeDamageReduction();
-            const effectiveMaxHit = Math.ceil(specialAttack.maxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
-            specialAttack.effectiveMaxHit = effectiveMaxHit;
+            const effectiveMaxHit = Math.ceil(maxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
+            
+            return {
+                ...specialAttack,
+                maxHit,
+                effectiveMaxHit
+            }
         });
+
+        this.specialAttackMaxHit = this.specialAttacks.reduce((max, specialAttack) => specialAttack.maxHit > max ? specialAttack.maxHit : max, 0);
+        this.effectiveSpecialAttackMaxHit = this.specialAttacks.reduce((max, specialAttack) => specialAttack.effectiveMaxHit > max ? specialAttack.effectiveMaxHit : max, 0);
+
+        this.maxHit = Math.max(this.normalAttackMaxHit, this.specialAttackMaxHit);
+        this.effectiveMaxHit = Math.max(this.effectiveNormalAttackMaxHit, this.effectiveSpecialAttackMaxHit);
 
         // Enemy cannot normal attack, if it will always use some special attack and none of them can normal attack
         if(this.specialAttackChanceTotal >= 100 && 
@@ -136,16 +135,6 @@ export class WIDMonster {
         } else {
             this.canNormalAttack = true;
         }  
-
-        this.normalAttackMaxHit = this._calculateStandardMaxHit()
-        this.dummyPlayer.computeDamageReduction();
-        this.effectiveNormalAttackMaxHit = Math.ceil(this.normalAttackMaxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
-
-        this.specialAttackMaxHit = this.specialAttacks.reduce((max, specialAttack) => specialAttack.maxHit > max ? specialAttack.maxHit : max, 0);
-        this.effectiveSpecialAttackMaxHit = this.specialAttacks.reduce((max, specialAttack) => specialAttack.effectiveMaxHit > max ? specialAttack.effectiveMaxHit : max, 0);
-
-        this.maxHit = Math.max(this.normalAttackMaxHit, this.specialAttackMaxHit);
-        this.effectiveMaxHit = Math.max(this.effectiveNormalAttackMaxHit, this.effectiveSpecialAttackMaxHit);
     }
 
     whatMakesMeDangerous() {
@@ -164,6 +153,143 @@ export class WIDMonster {
         }
 
         return explain;
+    }
+
+    _specialAttackDamage(attack) {
+        let calcDamage = 0;
+
+        attack.damage.forEach((damage)=>{
+            const dmg = this._getMaxDamage(damage);
+
+            if(dmg > calcDamage)
+                calcDamage = dmg;
+        });
+        
+        return calcDamage;
+    }
+
+    _getMaxDamage(damage) {
+        let character;
+
+        switch (damage.character) {
+            // Monster
+            case 'Attacker':
+                character = this._getCharacter('monster');
+                break;
+            // Player
+            case 'Target':
+                character = this._getCharacter('player');;
+                break;
+            default:
+                throw new Error(`Invalid damage character type: ${damage.character}`);
+        }
+        return this._damageRoll(character, damage.maxRoll, damage.maxPercent);
+    }
+
+    _getCharacter(monsterOrPlayer) {
+        if(monsterOrPlayer === 'monster') {
+            return {
+                maxHitpoints: this.dummyEnemy.stats.maxHitpoints,
+                maxHit: this.normalAttackMaxHit,
+                levels: this.dummyEnemy.levels,
+                damageReduction: this.dummyEnemy.stats.damageReduction || 0,
+                hitpointsPercent: 100,
+            };
+        } else if(monsterOrPlayer === 'player') {
+            return {
+                maxHitpoints: this.dummyPlayer.stats.maxHitpoints,
+                maxHit: this.dummyPlayer.stats.maxHit,
+                levels: this.dummyPlayer.levels,
+                damageReduction: this._playerDamageReduction,
+                hitpointsPercent: 100,
+            };
+        } else {
+            throw new Error(`Invalid character type: ${monsterOrPlayer}`);
+        }
+    }
+
+    _damageRoll(character, type, percent) {
+        let value = 0;
+        
+        switch (type) {
+            case 'CurrentHP':
+                value = character.maxHitpoints;
+                break;
+            case 'MaxHP':
+                value = character.maxHitpoints;
+                break;
+            case 'DamageDealt':
+                value = 0;
+                break;
+            case 'MaxHit':
+                value = character.maxHit;
+                break;
+            case 'MinHit':
+                value = 0;
+                break;
+            case 'Fixed':
+                return percent * numberMultiplier;
+            case 'MagicScaling':
+                value = (character.levels.Magic + 1) * numberMultiplier;
+                break;
+            case 'One':
+                return 1;
+            case 'Rend':
+                percent = 250;
+                value = damageDealt;
+                break;
+            case 'Poisoned':
+                return numberMultiplier * percent;
+            case 'Bleeding':
+                return numberMultiplier * percent;
+            case 'PoisonMin35':
+                value = 0;
+                break;
+            case 'PoisonMax35':
+                value = character.maxHit;
+                percent += 35;
+                break;
+            case 'PoisonFixed100':
+                value = numberMultiplier * percent;
+                value *= 2;
+                return value;
+            case 'BurnFixed100':
+                value = numberMultiplier * percent;
+                value *= 2;
+                return value;
+            case 'BurnMaxHit100':
+                value = character.maxHit;
+                percent += 100;
+                break;
+            case 'CursedFixed100':
+                value = numberMultiplier * percent;
+                value *= 2;
+                return value;
+            case 'MaxHitDR':
+                value = character.maxHit;
+                percent += character.damageReduction;
+                break;
+            case 'MaxHitScaledByHP':
+                value = (character.maxHit * character.hitpointsPercent) / 100;
+                break;
+            case 'MaxHitScaledByHP2x':
+                value = (character.maxHit * (character.hitpointsPercent * 2)) / 100;
+                break;
+            case 'FixedPlusMaxHit50':
+                return numberMultiplier * percent + character.maxHit / 2;
+            case 'HPUnder90':
+                if (character.hitpointsPercent <= 90)
+                    return numberMultiplier * percent;
+                else
+                    return 0;
+            case 'PoisonedMaxHit':
+                value = character.maxHit;
+                break;
+            default:
+                throw new Error(`Invalid damage type: ${type}`);
+        }
+
+        return Math.floor((value * percent) / 100);
     }
 
     _combatTriangleMultiplier() {
