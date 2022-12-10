@@ -3,7 +3,7 @@ const path = require('path');
 
 module.exports = {
   mode: 'production',
-  entry: './src/js/setup.mjs',
+  entry: './src/js/setup.ts',
   experiments: {
     outputModule: true
   },
@@ -26,6 +26,9 @@ module.exports = {
   optimization: {
     minimize: false
   },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
+  },
   module: {
     generator: {
       'asset/resource': {
@@ -42,6 +45,11 @@ module.exports = {
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: 'asset/resource',
+      },
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
       },
     ]
   },

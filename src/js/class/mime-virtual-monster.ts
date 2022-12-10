@@ -1,26 +1,27 @@
+import { VMExplain } from "../model/vm-explain";
+import { VMSpecialAttack } from "../model/vm-special-attack";
+
 export class VirtualMonster {
-    monsterId = null;
+    monsterId: string = null;
 
-    gameClone = null;
+    gameClone: Game = null;
 
-    dummyEnemy = null;
-    dummyPlayer = null;
-    dummyMonster = null;
+    dummyEnemy: Enemy = null;
+    dummyPlayer: Character = null;
+    dummyMonster: Monster = null;
 
-    name = null;
-    attackStyle = null;
+    name: string = null;
+    attackStyle: string = null;
 
     canStun = false;
     canSleep = false;
-    canFreeze = false;
     stunDamageMultiplier = 1;
     sleepDamageMultiplier = 1;
-    freezeDamageMultiplier = 1;
     totalDamageMultiplier = 1;
 
     combatTriangleMultiplier = 1;
 
-    specialAttacks = [];
+    specialAttacks: VMSpecialAttack[] = [];
     specialAttackChanceTotal = 0;
 
     normalAttackMaxHit = 0;
@@ -30,11 +31,13 @@ export class VirtualMonster {
     maxHit = 0;
     effectiveMaxHit = 0;
 
+    canNormalAttack: boolean = null;
+
     // Internal player values
-    _playerAttackStyle = null;
+    _playerAttackStyle: string = null;
     _playerDamageReduction = 0;
 
-    constructor(monsterId) {
+    constructor(monsterId: string) {
         this.monsterId = monsterId;
 
         this.gameClone = $.extend(true, {}, game);
@@ -56,13 +59,13 @@ export class VirtualMonster {
 
         this.dummyEnemy.setMonster(this.dummyMonster);
         this.dummyEnemy.target = this.dummyPlayer;
-        this.dummyEnemy.computeMaxHit();
+        (this.dummyEnemy as any).computeMaxHit();
 
-        this.dummyPlayer.computeDamageReduction();
+        (this.dummyPlayer as any).computeDamageReduction();
         this._playerDamageReduction = this.dummyPlayer.stats.damageReduction;
 
         this.specialAttackChanceTotal = 0;
-        this.name = this.dummyMonster._name;
+        this.name = this.dummyMonster.name;
         this.attackStyle = this.dummyMonster.attackType;
 
         this.combatTriangleMultiplier = this._combatTriangleMultiplier();
@@ -73,7 +76,6 @@ export class VirtualMonster {
 
             let canStun = false;
             let canSleep = false;
-            let canFreeze = false;
 
             // When you are stunned, monsters hit for 30% more
             // We're calculating the worst-case-scenario, so if a monster can stun with any attack,
@@ -82,7 +84,7 @@ export class VirtualMonster {
             specialAttack.attack.prehitEffects.some((e) => e.type === "Stun")) {
                 canStun = true;
                 this.canStun = true;
-                this.stunMult = 1.3;
+                this.stunDamageMultiplier = 1.3;
             }
 
             // When you are sleeping, monsters hit for 20% more
@@ -92,17 +94,7 @@ export class VirtualMonster {
             specialAttack.attack.prehitEffects.some((e) => e.type === "Sleep")) {
                 canSleep = true;
                 this.canSleep = true;
-                this.sleepMult = 1.2;
-            }
-
-            // When you are frozen, monsters hit for 30% more
-            // We're calculating the worst-case-scenario, so if a monster can freeze with any attack,
-            // we assume that the 20% always applies
-            if(specialAttack.attack.onhitEffects.some((e) => e.type === "Freeze") ||
-            specialAttack.attack.prehitEffects.some((e) => e.type === "Freeze")) {
-                canFreeze = true;
-                this.canFreeze = true;
-                this.freezeMult = 1.3;
+                this.sleepDamageMultiplier = 1.2;
             }
 
             const maxHit = this.dummyEnemy.getAttackMaxDamage(specialAttack.attack);
@@ -112,17 +104,16 @@ export class VirtualMonster {
                 maxHit,
                 canStun,
                 canSleep,
-                canFreeze,
                 originalSpecialAttack: specialAttack.attack
             });
         });
 
-        if(this.canStun || this.canSleep || this.canFreeze) {
-            this.totalDamageMultiplier = Math.max(this.stunDamageMultiplier, this.sleepDamageMultiplier, this.freezeDamageMultiplier);
+        if(this.canStun || this.canSleep) {
+            this.totalDamageMultiplier = Math.max(this.stunDamageMultiplier, this.sleepDamageMultiplier);
         }
 
         this.specialAttacks.map(specialAttack => {
-            this.dummyPlayer.computeDamageReduction();
+            (this.dummyPlayer as any).computeDamageReduction();
             const effectiveMaxHit = Math.ceil(specialAttack.maxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
             specialAttack.effectiveMaxHit = effectiveMaxHit;
         });
@@ -137,8 +128,8 @@ export class VirtualMonster {
             this.canNormalAttack = true;
         }  
 
-        this.normalAttackMaxHit = this._calculateStandardMaxHit()
-        this.dummyPlayer.computeDamageReduction();
+        this.normalAttackMaxHit = this._calculateStandardMaxHit();
+        (this.dummyPlayer as any).computeDamageReduction();
         this.effectiveNormalAttackMaxHit = Math.ceil(this.normalAttackMaxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
 
         this.specialAttackMaxHit = this.specialAttacks.reduce((max, specialAttack) => specialAttack.maxHit > max ? specialAttack.maxHit : max, 0);
@@ -149,8 +140,8 @@ export class VirtualMonster {
     }
 
     whatMakesMeDangerous() {
-        let explain = {
-            monsterName: this.name,
+        let explain: VMExplain = {
+            monsterName: this.name
         };
 
         if(this.normalAttackMaxHit > this.specialAttackMaxHit && this.canNormalAttack) {
@@ -168,6 +159,7 @@ export class VirtualMonster {
 
     _combatTriangleMultiplier() {
         const reductions = this.gameClone.currentGamemode.combatTriangle.reductionModifier;
+        // @ts-ignore Can't use number here
         return reductions[this._playerAttackStyle][this.attackStyle];
     }
 

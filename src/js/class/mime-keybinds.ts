@@ -1,4 +1,13 @@
-export class KeyBinder {
+type Bind = {
+    key: any;
+    action: any;
+    name: any;
+}
+
+export class MIMEKeyBinder {
+    binds: Bind[];
+    pressedKeys: Set<string>;
+
     constructor() {
         this.binds = [];
         this.pressedKeys = new Set();
@@ -7,7 +16,7 @@ export class KeyBinder {
         document.addEventListener('keyup', this.handleKeyUp.bind(this));
     }
 
-    bind(key, action, name) {
+    bind(key : string, action: () => void, name: string) {
         if(!key || !action || !name) 
             throw new Error('MIME: bind() requires key, action, and name parameters');
 
@@ -20,7 +29,7 @@ export class KeyBinder {
         this.binds.push(bind);
     }
 
-    unbind(key, name) {
+    unbind(key : string, name : string) {
         if(!key || !name) 
             throw new Error('MIME: unbind() requires key and name parameters');
             
@@ -31,7 +40,7 @@ export class KeyBinder {
         }
     }
 
-    handleKeyDown(event) {
+    handleKeyDown(event: any) {
         const binds = this.binds.filter(bind => bind.key === event.key);
 
         if (binds.length > 0 && !this.pressedKeys.has(event.key)) {
@@ -40,7 +49,7 @@ export class KeyBinder {
         }
     }
 
-    handleKeyUp(event) {
+    handleKeyUp(event: any) {
         this.pressedKeys.delete(event.key);
     }
 

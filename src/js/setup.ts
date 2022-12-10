@@ -1,9 +1,10 @@
-import { MIME } from './mime-main.mjs';
-import { MIMEConsole } from './vue/mime-console.mjs';
+import { MIME } from './mime-main';
+import { MIMEConsole } from './vue/mime-console';
 import '../css/styles.css';
 
-export async function setup(ctx) {
+export async function setup(ctx : ModContext) {
     Object.keys(MIME).forEach(key => {
+        // @ts-ignore Because we're pushing very dynamic bindings to the global api object
         ctx.api({ [key]: MIME[key] });
     });
 

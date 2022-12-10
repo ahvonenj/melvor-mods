@@ -1,8 +1,9 @@
-import { VirtualMonster } from './class/mime-virtual-monster.mjs';
-import { MIMEUtils } from './class/mime-utils.mjs';
-import { KeyBinder } from './class/mime-keybinds.mjs';
+import { VirtualMonster } from './class/mime-virtual-monster';
+import { MIMEUtils } from './class/mime-utils';
+import { MIMEKeyBinder } from './class/mime-keybinds';
+import { Mime } from './model/mime';
 
-export const MIME = {
+export const MIME : Mime = {
     _internal: {
         mimeConsole: null,
     }
@@ -29,7 +30,7 @@ MIME.fuzzyGetMonster = (query, n = 10) => {
     return MIMEUtils.fuzzySearch(query, game.monsters.allObjects, "monster", n);
 }
 
-MIME.KeyBinder = new KeyBinder();
+MIME.KeyBinder = new MIMEKeyBinder();
 
 MIME.KeyBinder.bind('§', () => {
     if(MIME._internal.mimeConsole.open) {

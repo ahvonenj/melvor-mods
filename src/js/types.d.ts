@@ -59,11 +59,3 @@ interface Patch {
 }
 
 type ModContextCallback = (ctx: ModContext) => void;
-
-interface UI {
-  create(component: any, host: Element): Element;
-  createStatic(template: string, host: Element): Element;
-  createStore(props: any): any;
-}
-
-declare const ui: UI;

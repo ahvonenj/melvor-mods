@@ -1,5 +1,5 @@
 export class MIMEUtils {
-    static levenshteinDistance(a, b, context) {
+    static levenshteinDistance(a: string, b: string, context: "item" | "monster" | "" = "") {
 
         if (b.indexOf(a) !== -1) return 0;
 
@@ -16,7 +16,7 @@ export class MIMEUtils {
             distances[0][j] = j;
         }
 
-        let sequences = []; 
+        let sequences : string[] = []; 
         
         if(context === "item") {
             sequences = [
@@ -64,12 +64,12 @@ export class MIMEUtils {
         return distances[b.length][a.length];
     }
 
-    static fuzzySearch(query, items, context, n) {
+    static fuzzySearch(query: string, items: Item[] | Monster[], context: "item" | "monster" | "" = "", n: number) {
         const results = [];
 
         for (const item of items) {
-            if(item._name.length < 3) continue;
-            const distance = MIMEUtils.levenshteinDistance(query.toLowerCase(), item._name.toLowerCase(), context);
+            if(item.name.length < 3) continue;
+            const distance = MIMEUtils.levenshteinDistance(query.toLowerCase(), item.name.toLowerCase(), context);
             results.push({ item, distance });
         }
 
