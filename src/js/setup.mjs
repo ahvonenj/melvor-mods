@@ -7,7 +7,11 @@ export async function setup(ctx) {
         ctx.api({ [key]: MIME[key] });
     });
 
+    const mimeConsole = MIMEConsole({ open: true });
+
     ctx.onInterfaceReady(() => {
-        ui.create(MIMEConsole(), document.getElementById('main-container'));
+        ui.create(mimeConsole, document.getElementById('main-container'));
     });
+
+    MIME._internal.mimeConsole = mimeConsole;
 }

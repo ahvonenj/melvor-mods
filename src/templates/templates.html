@@ -1,5 +1,7 @@
 <template id="mime-console-template">
-    <div id="mime-console">
-        <span class="text-light">Console</span>
+    <div :class="`${(open ? 'open' : '')}`" id="mime-console">
+        <div id="mime-console-inner">
+            MIME (1.0): _
+        </div>
     </div>
 </template>

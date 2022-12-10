@@ -4,7 +4,7 @@ import { KeyBinder } from './class/mime-keybinds.mjs';
 
 export const MIME = {
     _internal: {
-        isConsoleOpen: true
+        mimeConsole: null,
     }
 }
 
@@ -32,11 +32,9 @@ MIME.fuzzyGetMonster = (query, n = 10) => {
 MIME.KeyBinder = new KeyBinder();
 
 MIME.KeyBinder.bind('§', () => {
-    if(MIME._internal.isConsoleOpen) {
-        document.getElementById('mime-console').style.display = 'none';
-        MIME._internal.isConsoleOpen = false;
+    if(MIME._internal.mimeConsole.open) {
+        MIME._internal.mimeConsole.setOpen(false);
     } else {
-        document.getElementById('mime-console').style.display = 'block';
-        MIME._internal.isConsoleOpen = true;
+        MIME._internal.mimeConsole.setOpen(true);
     }
 }, "console");
