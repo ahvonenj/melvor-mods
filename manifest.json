@@ -1,4 +1,5 @@
 {
-    "namespace": "mime",
-    "setup": "setup.mjs"
+    "namespace": "MIME",
+    "setup": "setup.mjs",
+    "load": ["templates/templates.html"]
 }
