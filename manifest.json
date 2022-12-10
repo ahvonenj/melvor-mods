@@ -1,0 +1,5 @@
+{
+    "namespace": "mymod",
+    "setup": "setup.mjs",
+    "load": ["templates/templates.html"]
+}
