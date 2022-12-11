@@ -1,5 +1,4 @@
 {
-    "namespace": "MIME",
-    "setup": "setup.mjs",
-    "load": ["templates/templates.html"]
+    "namespace": "CompletionLogFilterMonsterItems",
+    "setup": "setup.mjs"
 }
