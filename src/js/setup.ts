@@ -8,7 +8,7 @@ export async function setup(ctx : ModContext) {
         ctx.api({ [key]: MIME[key] });
     });
 
-    const mimeConsole = MIMEConsole({ open: true });
+    const mimeConsole = MIMEConsole({ open: false });
 
     ctx.onInterfaceReady(() => {
         ui.create(mimeConsole, document.getElementById('main-container'));
