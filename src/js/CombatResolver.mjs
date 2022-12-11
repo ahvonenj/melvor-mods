@@ -165,20 +165,59 @@ export class CombatResolver {
         }
     }
 
-    setTargetArea(area) {
-        this._log(`WillIDie: Setting new target area`);
-        this._log(area);
+    setTargetArea(e, areaId, areaType) {
+        e.preventDefault(); 
+        e.stopPropagation();
 
-        this.targetArea = area;
-        this.recalculateSurvivability();
+        this._log(`WillIDie: Setting new target area`);
+
+        let areaData = null;
+
+        if(areaType === 'dungeon') {
+            areaData = game.dungeonDisplayOrder.find(d => d.id === areaId);
+        } else if(areaType === 'slayer') {
+            areaData = game.slayerAreaDisplayOrder.find(d => d.id === areaId);
+        } else {
+            areaData = game.combatAreaDisplayOrder.find(d => d.id === areaId);
+        }
+
+        this._log(areaData);
+
+        if(areaData instanceof Dungeon && areaData.unlockRequirement !== undefined && !game.checkRequirements(areaData.unlockRequirement)) {
+            this._log("WillIDie: Cancelled area target setting - NOT UNLOCKED");
+            return;
+        }
+
+        if(e.target.classList.contains('cr-active')) {
+            this.targetArea = null;
+            this.recalculateSurvivability("Target area set to null");
+            e.target.classList.remove('cr-active');
+            return;
+        }
+
+        document.querySelectorAll('.combat-resolver-set-area-target').forEach((e) => {
+            e.classList.remove('cr-active');
+        })
+        
+        e.target.classList.add('cr-active');
+
+        this.targetArea = areaData;
+        this.recalculateSurvivability("Target area changed");
     }
 
-    // Meat of this mod
-    recalculateSurvivability() {
+    recalculateSurvivability(reason = "") {
         if(this.targetArea === null) {
+            this._log(`WillIDie: No target area set, not calculating survivability`);
             this._reRender();
             return;
         }
+
+        if(game.combat.fightInProgress || game.combat.isActive) {
+            this._log(`WillIDie: Fight in progress, not calculating survivability`);
+            return;
+        }
+
+        this._log(`WillIDie: Recalculating survivability (${reason})`);
 
         const autoEatThreshold = game.combat.player.autoEatThreshold;
         const widMonsters = this.targetArea.monsters.map(m => new WIDMonster(m.id));
@@ -201,7 +240,6 @@ export class CombatResolver {
             this._debugValues.mostDangerousMonster = mostDangerousMonster;
             this._debugValues.player.damageReduction = mostDangerousMonster._playerDamageReduction;
         }
-        
 
         this.currentSurvivabilityState = {
             maxHit: mostDangerousMonster.maxHit,

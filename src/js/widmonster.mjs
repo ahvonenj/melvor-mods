@@ -23,8 +23,12 @@ export class WIDMonster {
 
     normalAttackMaxHit = 0;
     effectiveNormalAttackMaxHit = 0;
+
     specialAttackMaxHit = 0;
     effectiveSpecialAttackMaxHit = 0;
+    maxHittingSpecialAttack = null;
+    effectiveMaxHittingSpecialAttack = null;
+
     maxHit = 0;
     effectiveMaxHit = 0;
 
@@ -120,8 +124,27 @@ export class WIDMonster {
             }
         });
 
-        this.specialAttackMaxHit = this.specialAttacks.reduce((max, specialAttack) => specialAttack.maxHit > max ? specialAttack.maxHit : max, 0);
-        this.effectiveSpecialAttackMaxHit = this.specialAttacks.reduce((max, specialAttack) => specialAttack.effectiveMaxHit > max ? specialAttack.effectiveMaxHit : max, 0);
+        let specialAttackMaxHit = 0;
+        let maxHittingSpecialAttack = null;
+        let effectiveSpecialAttackMaxHit = 0;
+        let effectiveMaxHittingSpecialAttack = null;
+
+        this.specialAttacks.forEach(specialAttack => { 
+            if(specialAttack.maxHit > specialAttackMaxHit) {
+                specialAttackMaxHit = specialAttack.maxHit;
+                maxHittingSpecialAttack = specialAttack;
+            }
+
+            if(specialAttack.effectiveMaxHit > effectiveSpecialAttackMaxHit) {
+                effectiveSpecialAttackMaxHit = specialAttack.effectiveMaxHit;
+                effectiveMaxHittingSpecialAttack = specialAttack;
+            }
+        });
+
+        this.specialAttackMaxHit = specialAttackMaxHit;
+        this.maxHittingSpecialAttack = maxHittingSpecialAttack;
+        this.effectiveSpecialAttackMaxHit = effectiveSpecialAttackMaxHit;
+        this.effectiveMaxHittingSpecialAttack = effectiveMaxHittingSpecialAttack;
 
         this.maxHit = Math.max(this.normalAttackMaxHit, this.specialAttackMaxHit);
         this.effectiveMaxHit = Math.max(this.effectiveNormalAttackMaxHit, this.effectiveSpecialAttackMaxHit);
@@ -142,12 +165,12 @@ export class WIDMonster {
             monsterName: this.name,
         };
 
-        if(this.normalAttackMaxHit > this.specialAttackMaxHit && this.canNormalAttack) {
+        if((this.normalAttackMaxHit > this.specialAttackMaxHit) && this.canNormalAttack) {
             explain.bestAttackName = "Normal Attack";
             explain.maxHit = this.normalAttackMaxHit;
             explain.effectiveMaxHit = this.effectiveNormalAttackMaxHit;
         } else {
-            explain.bestAttackName = this.specialAttacks.find(s => s.maxHit === this.specialAttackMaxHit).specialAttackName;
+            explain.bestAttackName = this.maxHittingSpecialAttack.specialAttackName;
             explain.maxHit = this.specialAttackMaxHit;
             explain.effectiveMaxHit = this.effectiveSpecialAttackMaxHit;
         }

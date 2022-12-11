@@ -61,15 +61,13 @@ export async function setup(ctx) {
         hideElement(table);
 
         // --------------------------------------- OVERRIDE ---------------------------------------
-        let render = true;
 
-        // if (areaData instanceof Dungeon) {
-        //     if (areaData.unlockRequirement !== undefined) {
-        //         if (!game.checkRequirements(areaData.unlockRequirement)) {
-        //             render = false;
-        //         }
-        //     }
-        // }
+        let render = true;
+        const skippedAreas = ['melvorTotH:Lair_of_the_Spider_Queen', 'melvorF:Into_the_Mist', 'melvorF:Impending_Darkness']
+
+        if(areaData instanceof Dungeon && skippedAreas.includes(areaData.id)) {
+            render = false;
+        }
 
         if (render) {
             const resolverAreaTargetButton = openButton.appendChild(createElement('div', {
@@ -77,26 +75,12 @@ export async function setup(ctx) {
                 text: "T"
             }))
     
-            resolverAreaTargetButton.onclick = (e) => { 
-                e.preventDefault(); 
-                e.stopPropagation();
-    
-                if(e.target.classList.contains('cr-active')) {
-                    combatResolver.setTargetArea(null);
-                    e.target.classList.remove('cr-active');
-                    return;
-                }
-    
-                combatResolver.setTargetArea(areaData); 
-    
-                document.querySelectorAll('.combat-resolver-set-area-target').forEach((e) => {
-                    e.classList.remove('cr-active');
-                })
-                
-                e.target.classList.add('cr-active');
-            }
+            resolverAreaTargetButton.onclick = (e) => combatResolver.setTargetArea(
+                e, 
+                areaData.id, 
+                areaData instanceof Dungeon ? 'dungeon' : areaData instanceof SlayerArea ? 'slayer' : ''
+            );
         }
-        
 
         // --------------------------------------- !OVERRIDE! -------------------------------------
 
@@ -129,12 +113,16 @@ export async function setup(ctx) {
     });*/
 
     ctx.patch(Player, 'updateForEquipmentChange').after(() => {
-        combatResolver.recalculateSurvivability();
+        combatResolver.recalculateSurvivability("Equipment change");
     });
 
-    ctx.patch(Player, 'computeEquipmentStats').after(() => {
-        combatResolver.recalculateSurvivability();
+    ctx.patch(Player, 'updateForEquipSetChange').after(() => {
+        combatResolver.recalculateSurvivability("Equipment set change");
     });
+
+    ctx.patch(BaseManager, 'stop').after(() => {
+        combatResolver.recalculateSurvivability("Combat stop");
+    })
 
     // Hook to onInterfaceReady
     // We use this event to create our header component for this mod
