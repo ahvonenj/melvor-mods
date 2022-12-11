@@ -1,0 +1,83 @@
+declare class DropDown extends ContainedComponent {
+    private parent;
+    protected container: HTMLDivElement;
+    private button;
+    private optionsContainer;
+    constructor(parent: HTMLElement, id: string, buttonClasses: string[], optionsClasses: string[], scroll?: boolean, maxOptionsHeight?: number);
+    setButtonText(text: string): void;
+    setButtonCallback(callback: (this: GlobalEventHandlers, ev: MouseEvent) => any): void;
+    addOption(optionContent: Node[], callback: VoidFunction): void;
+    clearOptions(): void;
+}
+declare class ArtisanMenu<ProductType extends Item> extends ContainedComponent {
+    private skill;
+    private parent;
+    protected container: HTMLDivElement;
+    private nameRow;
+    private productBlock;
+    private productImage;
+    private productQuantity;
+    private createBlock;
+    private createText;
+    private productName;
+    protected productDescription: HTMLElement;
+    private selectedText;
+    private viewStatsText;
+    private buffsContainer;
+    private productPreservation;
+    private productDoubling;
+    private masteryCol;
+    private mastery;
+    private ingredientsCol;
+    private dropDownCont;
+    private recipeDropdown;
+    private recipeDropdownItems;
+    private requires;
+    private haves;
+    private productsCol;
+    private produces;
+    private productIcon;
+    private grants;
+    private creationCol;
+    private createButton;
+    private interval;
+    private progressBar;
+    private progressTimestamp;
+    private progressInterval;
+    protected product?: ProductType;
+    protected noneSelected: boolean;
+    constructor(containerID: string, skill: SkillWithMastery<MasteryAction, MasterySkillData>);
+    localize(): void;
+    setSelected(recipe: ArtisanSkillRecipe): void;
+    setIngredients(items: AnyItemQuantity[], gp: number, sc: number): void;
+    setIngredientsFromRecipe(recipe: ArtisanSkillRecipe): void;
+    setProduct(item: ProductType, qty: number): void;
+    updateQuantities(): void;
+    updateGrants(xp: number, masteryXP: number, poolXP: number): void;
+    updateChances(preserveChance: number, doublingChance: number): void;
+    updateInterval(interval: number): void;
+    setCreateCallback(callback: VoidFunction): void;
+    animateProgressFromTimer(timer: Timer): void;
+    startProgressBar(interval: number): void;
+    stopProgressBar(): void;
+    updateProgressBar(): void;
+    hideRecipeDropdown(): void;
+    showRecipeDropdown(): void;
+    setRecipeDropdown(altRecipeIngredients: {
+        items: AnyItemQuantity[];
+        gp: number;
+        sc: number;
+    }[], selectCallback: (recipeID: number) => VoidFunction, displayOrder?: number[]): void;
+}
+declare class HerbloreArtisanMenu extends ArtisanMenu<PotionItem> {
+    private tierImages;
+    private tierTooltips;
+    private tierContainer;
+    private tierText;
+    constructor(herblore: Herblore);
+    private setProductTier;
+    private setPotionDescription;
+    setSelected(recipe: ArtisanSkillRecipe): void;
+    setProduct(item: PotionItem, qty: number): void;
+    localize(): void;
+}
