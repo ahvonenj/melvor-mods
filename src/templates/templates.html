@@ -1,7 +1,7 @@
 <template id="mime-console-template">
     <div :class="`${(open ? 'open' : '')}`" id="mime-console">
         <div id="mime-console-inner">
-            MIME (1.0): _
+            <textarea id="mime-console-io" @input="onConsoleInput" v-model="consoletext"></textarea>
         </div>
     </div>
 </template>

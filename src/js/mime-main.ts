@@ -76,6 +76,12 @@ MIME.KeyBinder.bind('§', () => {
     if(MIME._internal.mimeConsole.open) {
         MIME._internal.mimeConsole.setOpen(false);
     } else {
+        const $console = document.querySelector('#mime-console-io') as HTMLInputElement;
+
+        if($console) {
+            $console.focus();
+        }     
+
         MIME._internal.mimeConsole.setOpen(true);
     }
 }, "console");

@@ -15,4 +15,6 @@ export async function setup(ctx : ModContext) {
     });
 
     MIME._internal.mimeConsole = mimeConsole;
+
+    //const $console = (await MIME.querySelectorAsync('#mime-console-io')) as HTMLInputElement;
 }
