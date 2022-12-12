@@ -1,5 +1,6 @@
 {
     "namespace": "MIME",
     "setup": "setup.mjs",
-    "load": ["templates/templates.html"]
+    "load": ["templates/templates.html"],
+    "logo": "mod_logo_mime.png"
 }
