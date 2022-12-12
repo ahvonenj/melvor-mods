@@ -1,4 +1,5 @@
 {
     "namespace": "WillIDie",
-    "setup": "setup.mjs"
+    "setup": "setup.mjs",
+    "icon":"mod_logo_willidie.png"
 }
