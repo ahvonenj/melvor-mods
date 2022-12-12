@@ -185,6 +185,27 @@ export class CombatResolver {
 
         if(areaData instanceof Dungeon && areaData.unlockRequirement !== undefined && !game.checkRequirements(areaData.unlockRequirement)) {
             this._log("WillIDie: Cancelled area target setting - NOT UNLOCKED");
+            Toastify({
+                text: `Will I Die?: Area is not unlocked`,
+                duration: 1500,
+                gravity: 'top',
+                position: 'center',
+                backgroundColor: '#e56767',
+                stopOnFocus: false
+            }).showToast();
+            return;
+        }
+
+        if(game.combat.fightInProgress || game.combat.isActive) {
+            this._log(`WillIDie: Fight in progress, not changing areas`);
+            Toastify({
+                text: `Will I Die?: Cannot change target area while in combat`,
+                duration: 1500,
+                gravity: 'top',
+                position: 'center',
+                backgroundColor: '#e56767',
+                stopOnFocus: false
+            }).showToast();
             return;
         }
 
