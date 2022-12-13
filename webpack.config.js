@@ -20,7 +20,7 @@ module.exports = {
       patterns: [
         { from: 'src/templates', to: 'templates' },
         { from: 'manifest.json', to: 'manifest.json' },
-        { from: 'mod_logo_mime.png', to: 'mod_logo_mime.png' },
+        { from: 'mod_logo_mime.png', to: 'mod_logo_mime.png' }
       ]
     })
   ],
