@@ -1,9 +1,8 @@
-import { MyMod } from './mymod.js';
-import { MyComponent } from './vue/my-component.js';
+import { Clippy } from './clippy';
 import '../css/styles.css';
 
 export async function setup(ctx : ModContext) {
     ctx.onInterfaceReady(() => {
-        ui.create(MyComponent({ open: false }), document.getElementById('main-container'));
+        const clippy = new Clippy(ctx);
     });
 }

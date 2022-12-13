@@ -59,3 +59,5 @@ interface Patch {
 }
 
 type ModContextCallback = (ctx: ModContext) => void;
+
+declare module "*.png"
