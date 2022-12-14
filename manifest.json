@@ -2,5 +2,5 @@
     "namespace": "MIME",
     "setup": "setup.mjs",
     "load": ["templates/templates.html"],
-    "logo": "mod_logo_mime.png"
+    "icon": "mod_logo_mime.png"
 }
