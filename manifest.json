@@ -1,5 +1,5 @@
 {
     "namespace": "CompletionLogFilterMonsterItems",
     "setup": "setup.mjs",
-    "logo": "mod_logo_cl.png"
+    "icon": "mod_logo_cl.png"
 }
