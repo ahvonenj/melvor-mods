@@ -1,5 +1,6 @@
 export class WIDMonster {
     monsterId = null;
+    safetyFactor = 1;
 
     gameClone = null;
 
@@ -36,8 +37,9 @@ export class WIDMonster {
     _playerAttackStyle = null;
     _playerDamageReduction = 0;
 
-    constructor(monsterId) {
+    constructor(monsterId, safetyFactor = 1) {
         this.monsterId = monsterId;
+        this.safetyFactor = safetyFactor;
 
         this.gameClone = $.extend(true, {}, game);
 
@@ -115,7 +117,7 @@ export class WIDMonster {
         this.specialAttacks = this.specialAttacks.map(specialAttack => {
             const maxHit = this._specialAttackDamage(specialAttack.originalSpecialAttack);
             this.dummyPlayer.computeDamageReduction();
-            const effectiveMaxHit = Math.ceil(maxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
+            const effectiveMaxHit = Math.ceil(maxHit * this.totalDamageMultiplier *  (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
             
             return {
                 ...specialAttack,
@@ -188,7 +190,7 @@ export class WIDMonster {
                 calcDamage = dmg;
         });
         
-        return calcDamage;
+        return calcDamage * this.safetyFactor;
     }
 
     _getMaxDamage(damage) {
@@ -354,6 +356,6 @@ export class WIDMonster {
                 throw new Error();
         }
 
-        return maxHit;
+        return maxHit * this.safetyFactor;
     }
 }

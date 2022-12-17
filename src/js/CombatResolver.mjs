@@ -3,14 +3,24 @@ import { WIDMonster } from "./widmonster.mjs";
 export class CombatResolver {
 
     targetArea = null;
+    targetMonster = null;
+    targetSlayerTask = null;
     currentSurvivabilityState = null;
     
     tabComponent = null; 
     tabButton = null;
     tabContent = null;
+    safetyFactorElement = null;
+
+    safetyFactor = 1.05;
+    skipRequirements = false;
+
+    pendingRecalculation = false;
     
     headerComponentCreated = false;
     _debug = false;
+
+    _ctx = null;
 
     _debugValues = {
         monsters: [],
@@ -22,6 +32,14 @@ export class CombatResolver {
 
     constructor() {
 
+    }
+
+    // Called in setup.mjs, after settings have been created
+    _init(ctx) {
+        this._ctx = ctx;
+        this.safetyFactor = 1 + (ctx.settings.section('Safety Factor').get('safety_factor') / 100);
+        this.skipRequirements = ctx.settings.section('Requirements').get('skip_requirements');
+        this._debug = ctx.settings.section('Debug').get('debug_mode');
     }
 
     _log(str, ...args) {
@@ -68,10 +86,13 @@ export class CombatResolver {
             text: "Will I Die?"
         });
 
-        if(this._debug) {
-            header.onclick = () => {
-                this._printDebugValues();
-            }
+        this.safetyFactorElement = createElement('div', {
+            classList: ["wid-safety-factor"],
+            text: `Safety Factor: ${this.safetyFactor}x`
+        });
+
+        header.onclick = () => {
+            this._printDebugValues();
         }
 
         dropdown.appendChild(createElement('div', {
@@ -82,6 +103,7 @@ export class CombatResolver {
             classList: ["block-content", "block-content-full", "pt-0", "combat-resolver-tab-content"]
         })
 
+        dropdown.appendChild(this.safetyFactorElement);
         dropdown.appendChild(this.tabContent);
         this.tabComponent.appendChild(dropdown);
         targetTab.after(this.tabComponent);
@@ -92,6 +114,8 @@ export class CombatResolver {
     }
 
     _printDebugValues() {
+        if(!this._debug) return;
+        
         console.group('WILL I DIE DEBUG VALUES');
         console.log("Target area", this.targetArea);
         console.log("Current survivability state", this.currentSurvivabilityState);
@@ -101,6 +125,19 @@ export class CombatResolver {
         console.groupEnd();
     }
 
+    _reRenderSafetyFactor() {
+        this.safetyFactorElement.innerHTML = `Safety Factor: ${this.safetyFactor}x`;
+
+        this.safetyFactorElement.classList.remove('wid-safety-factor-warning');
+        this.safetyFactorElement.classList.remove('wid-safety-factor-danger');
+
+        if(this.safetyFactor < 1.05) {
+            this.safetyFactorElement.classList.add('wid-safety-factor-danger');
+        } else if(this.safetyFactor < 1.07) {
+            this.safetyFactorElement.classList.add('wid-safety-factor-warning');
+        }
+    }
+
     // Rerenders all the DOM elements related to this mod with new values
     _reRender() {
         if(!this.headerComponentCreated) return;
@@ -108,7 +145,7 @@ export class CombatResolver {
         this._log(`WillIDie: Rerendering`);
 
         // No area target selected or some other issue - can't tell if safe or not so we render ?
-        if(!this.currentSurvivabilityState || !this.targetArea) {
+        if(!this.currentSurvivabilityState) {
             this.tabButton.textContent = "?";
             this.tabButton.classList.remove('combat-resolver-safe');
             this.tabButton.classList.remove('combat-resolver-danger');
@@ -118,6 +155,8 @@ export class CombatResolver {
             After you have set the combat area target, WillIDie will begin to calculate whether you will live or die 
             when idling in the selected area, based on your current gear and statistics.`;
 
+            this._reRenderSafetyFactor();
+
             return;
         }
 
@@ -126,42 +165,70 @@ export class CombatResolver {
             maxHitReason, 
             maxHit,
             effectiveMaxHit,
-            autoEatThreshold
+            autoEatThreshold,
+            areaName
         } = this.currentSurvivabilityState;
-
-        const area = this.targetArea;
 
         if(canDie) {
             this.tabButton.textContent = "DANGER";
             this.tabButton.classList.remove('combat-resolver-unknown');
             this.tabButton.classList.remove('combat-resolver-safe');
+            this.tabButton.classList.remove('combat-resolver-recalc');
             this.tabButton.classList.add('combat-resolver-danger');
 
-            this.tabContent.innerHTML = `<span class = "cr-hl-warn">YOU COULD DIE.</span><br/><br/>
+            if(this.pendingRecalculation) {
+                this.tabButton.classList.add('combat-resolver-recalc');
+            }
+
+            this.tabContent.innerHTML = `<span class = "cr-hl cr-hl-warn">YOU COULD DIE.</span><br/><br/>
             In the worst case, a monster named 
             <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> in 
-            <span class = "cr-hl cr-hl-area">${area.name}</span> could perform 
+            <span class = "cr-hl cr-hl-area">${areaName}</span> could perform 
             <span class = "cr-hl cr-hl-spec">${maxHitReason.bestAttackName}</span> and hit you for 
             <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> after damage reduction.<br/><br/>As
             <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> is greater than your auto-eat threshold of 
             <span class = "cr-hl cr-hl-health">${autoEatThreshold}</span>,
             <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> could kill you.`;
+
+            this._reRenderSafetyFactor();
         }
         else {
             this.tabButton.textContent = "SAFE";
             this.tabButton.classList.remove('combat-resolver-unknown');
             this.tabButton.classList.remove('combat-resolver-danger');
+            this.tabButton.classList.remove('combat-resolver-recalc');
             this.tabButton.classList.add('combat-resolver-safe');
 
-            this.tabContent.innerHTML = `<span class = "cr-hl-ok">YOU SHOULD BE SAFE.</span><br/><br/>
-            In the worst case, a monster named 
-            <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> in 
-            <span class = "cr-hl cr-hl-area">${area.name}</span> could perform 
-            <span class = "cr-hl cr-hl-spec">${maxHitReason.bestAttackName}</span> and hit you for 
-            <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> after damage reduction.<br/><br/>As
-            <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> is less than your auto-eat threshold of 
-            <span class = "cr-hl cr-hl-health">${autoEatThreshold}</span>,
-            <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> shouldn't be able to kill you.`;
+            if(this.pendingRecalculation) {
+                this.tabButton.classList.remove('combat-resolver-safe');
+                this.tabButton.classList.add('combat-resolver-recalc');
+
+                this.tabContent.innerHTML = `<span class = "cr-hl combat-resolver-recalc">PENDING RECALCULATION.</span><br/><br/>
+                In the worst case, a monster named 
+                <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> in 
+                <span class = "cr-hl cr-hl-area">${areaName}</span> could perform 
+                <span class = "cr-hl cr-hl-spec">${maxHitReason.bestAttackName}</span> and hit you for 
+                <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> after damage reduction.<br/><br/>As
+                <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> is less than your auto-eat threshold of 
+                <span class = "cr-hl cr-hl-health">${autoEatThreshold}</span>,
+                <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> shouldn't be able to kill you.<br/><br/>
+                <span class = "cr-hl-warn">THESE VALUES MIGHT NOT BE CORRECT, BECAUSE RECALCULATION IS NEEDED.</span><br/><br/>
+                <span class = "cr-hl-warn">LEAVE COMBAT TO RECALCULATE SURVIVABILITY</span>`;
+            } else {
+                this.tabContent.innerHTML = `<span class = "cr-hl cr-hl-ok">YOU SHOULD BE SAFE.</span><br/><br/>
+                In the worst case, a monster named 
+                <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> in 
+                <span class = "cr-hl cr-hl-area">${areaName}</span> could perform 
+                <span class = "cr-hl cr-hl-spec">${maxHitReason.bestAttackName}</span> and hit you for 
+                <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> after damage reduction.<br/><br/>As
+                <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> is less than your auto-eat threshold of 
+                <span class = "cr-hl cr-hl-health">${autoEatThreshold}</span>,
+                <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> shouldn't be able to kill you.`;
+            }
+
+            
+
+            this._reRenderSafetyFactor();
         }
     }
 
@@ -183,7 +250,7 @@ export class CombatResolver {
 
         this._log(areaData);
 
-        if(areaData instanceof Dungeon && areaData.unlockRequirement !== undefined && !game.checkRequirements(areaData.unlockRequirement)) {
+        if(!this.skipRequirements && areaData instanceof Dungeon && areaData.unlockRequirement !== undefined && !game.checkRequirements(areaData.unlockRequirement)) {
             this._log("WillIDie: Cancelled area target setting - NOT UNLOCKED");
             Toastify({
                 text: `Will I Die?: Area is not unlocked`,
@@ -194,6 +261,23 @@ export class CombatResolver {
                 stopOnFocus: false
             }).showToast();
             return;
+        }
+
+        if(areaData instanceof SlayerArea) {
+            const slayerLevelReq = areaData.slayerLevelRequired;
+
+            if (!this.skipRequirements && !game.checkRequirements(areaData.entryRequirements, false, slayerLevelReq)) {
+                this._log("WillIDie: Cancelled area target setting - FAILED REQUIREMENTS");
+                Toastify({
+                    text: `Will I Die?: Requirements not met`,
+                    duration: 1500,
+                    gravity: 'top',
+                    position: 'center',
+                    backgroundColor: '#e56767',
+                    stopOnFocus: false
+                }).showToast();
+                return;
+            }
         }
 
         if(game.combat.fightInProgress || game.combat.isActive) {
@@ -209,40 +293,174 @@ export class CombatResolver {
             return;
         }
 
-        if(e.target.classList.contains('cr-active')) {
-            this.targetArea = null;
-            this.recalculateSurvivability("Target area set to null");
-            e.target.classList.remove('cr-active');
+        const unset = this._handleTButton(e, "AREA");
+
+        if(unset)
+            return;
+
+        this.targetArea = areaData;
+        this.recalculateSurvivability("Target area changed", "AREA", areaData);
+    }
+    
+    setTargetMonster(e, areaId, monsterId, areaType) {
+        e.preventDefault(); 
+        e.stopPropagation();
+
+        this._log(`WillIDie: Setting new target monster`);
+
+        let areaData = null;
+
+        if(areaType === 'slayer') {
+            areaData = game.slayerAreaDisplayOrder.find(d => d.id === areaId);
+
+            if(areaData instanceof SlayerArea) {
+                const slayerLevelReq = areaData.slayerLevelRequired;
+    
+                if (!this.skipRequirements && !game.checkRequirements(areaData.entryRequirements, false, slayerLevelReq)) {
+                    this._log("WillIDie: Cancelled area target setting - FAILED REQUIREMENTS");
+                    Toastify({
+                        text: `Will I Die?: Requirements not met`,
+                        duration: 1500,
+                        gravity: 'top',
+                        position: 'center',
+                        backgroundColor: '#e56767',
+                        stopOnFocus: false
+                    }).showToast();
+                    return;
+                }
+            }
+        } else {
+            areaData = game.combatAreaDisplayOrder.find(d => d.id === areaId);
+        }
+
+        this._log(areaData);
+        this._log(monsterId)
+
+        if(game.combat.fightInProgress || game.combat.isActive) {
+            this._log(`WillIDie: Fight in progress, not changing monsters`);
+            Toastify({
+                text: `Will I Die?: Cannot change target monster while in combat`,
+                duration: 1500,
+                gravity: 'top',
+                position: 'center',
+                backgroundColor: '#e56767',
+                stopOnFocus: false
+            }).showToast();
             return;
         }
 
-        document.querySelectorAll('.combat-resolver-set-area-target').forEach((e) => {
-            e.classList.remove('cr-active');
-        })
-        
-        e.target.classList.add('cr-active');
+        const unset = this._handleTButton(e, "MONSTER");
 
-        this.targetArea = areaData;
-        this.recalculateSurvivability("Target area changed");
+        if(unset)
+            return;
+
+        this.recalculateSurvivability("Target area changed", "MONSTER", monsterId, areaData);
     }
 
-    recalculateSurvivability(reason = "") {
-        if(this.targetArea === null) {
-            this._log(`WillIDie: No target area set, not calculating survivability`);
+    setTargetSlayerTask(e, selectedTier) {
+        e.preventDefault(); 
+        e.stopPropagation();
+
+        this._log(`WillIDie: Setting new target slayer task`);
+
+        if(game.combat.fightInProgress || game.combat.isActive) {
+            this._log(`WillIDie: Fight in progress, not changing slayer task`);
+            Toastify({
+                text: `Will I Die?: Cannot change target slayer task while in combat`,
+                duration: 1500,
+                gravity: 'top',
+                position: 'center',
+                backgroundColor: '#e56767',
+                stopOnFocus: false
+            }).showToast();
+            return;
+        }
+
+        const monsters = game.combat.slayerTask.getMonsterSelection(selectedTier);
+
+        if(monsters.length === 0) {
+            this._log("WillIDie: Cancelled slayer task target setting - FAILED REQUIREMENTS");
+            Toastify({
+                text: `Will I Die?: Requirements not met for any monster of this tier`,
+                duration: 1500,
+                gravity: 'top',
+                position: 'center',
+                backgroundColor: '#e56767',
+                stopOnFocus: false
+            }).showToast();
+            return;
+        }
+
+        this._log(monsters);
+
+        const unset = this._handleTButton(e, "SLAYER");
+
+        if(unset)
+            return;
+
+            this.recalculateSurvivability("Target slayer task changed", "SLAYER", monsters);
+    }
+
+    recalculateSurvivability(reason = "", areaOrMonster, target, areaData = null) {
+
+        if(game.combat.fightInProgress || game.combat.isActive) {
+            this._log(`WillIDie: Fight in progress, not calculating survivability`);
+            this.pendingRecalculation = true;
             this._reRender();
             return;
         }
 
-        if(game.combat.fightInProgress || game.combat.isActive) {
-            this._log(`WillIDie: Fight in progress, not calculating survivability`);
+        this.currentSurvivabilityState = null;
+
+        if(areaOrMonster === "NONE") {
+            this._log(`WillIDie: Target removed, not calculating survivability`);
+            this._reRender();
             return;
         }
 
-        this._log(`WillIDie: Recalculating survivability (${reason})`);
+        let widMonsters = [];
 
-        const autoEatThreshold = game.combat.player.autoEatThreshold;
-        const widMonsters = this.targetArea.monsters.map(m => new WIDMonster(m.id));
+        if(areaOrMonster === "AREA") {
+            widMonsters = target.monsters.map(m => new WIDMonster(m.id, this.safetyFactor));
+            this.targetArea = target;
+            this.targetMonster = null;
+            this.targetSlayerTask = null;
+        } else if(areaOrMonster === "MONSTER") {
+            widMonsters = [new WIDMonster(target, this.safetyFactor)];
+            this.targetMonster = target;
+            this.targetArea = null;
+            this.targetSlayerTask = null;
+        } else if(areaOrMonster === "SLAYER") {
+            widMonsters = target.map(m => new WIDMonster(m.id, this.safetyFactor));
+            this.targetSlayerTask = target;
+            this.targetMonster = null;
+            this.targetArea = null;
+        } else {
+            if(this.targetArea && !this.targetMonster && !this.targetSlayerTask) {
+                this._log(`WillIDie: Found unambiguous area target for cold function call, recalculating survivability`);
+                widMonsters = this.targetArea.monsters.map(m => new WIDMonster(m.id, this.safetyFactor));
+                areaOrMonster === "AREA";
+                target = this.targetArea;
+            } else if(this.targetMonster && !this.targetArea && !this.targetSlayerTask) {
+                this._log(`WillIDie: Found unambiguous monster target for cold function call, recalculating survivability`);
+                widMonsters = [new WIDMonster(this.targetMonster, this.safetyFactor)];
+                areaOrMonster === "MONSTER";
+                target = this.targetMonster;
+            } else if(this.targetSlayerTask && !this.targetArea && !this.targetMonster) {
+                this._log(`WillIDie: Found unambiguous slayer target for cold function call, recalculating survivability`);
+                widMonsters = targetSlayerTask.map(m => new WIDMonster(m.id, this.safetyFactor));
+                areaOrMonster === "SLAYER";
+                target = this.targetSlayerTask;
+            } else {
+                this._log(`WillIDie: Could not resolve cold function call, not recalculating survivability`);
+                this._reRender();
+                return;
+            }
+        }
+
+        this._log(`WillIDie: Recalculating survivability (${reason})`);
         
+        const autoEatThreshold = game.combat.player.autoEatThreshold;
         let mostDangerousMonster = null;
 
         widMonsters.forEach(monster => {
@@ -262,14 +480,43 @@ export class CombatResolver {
             this._debugValues.player.damageReduction = mostDangerousMonster._playerDamageReduction;
         }
 
+        const areas = [...game.combatAreaDisplayOrder, ...game.slayerAreaDisplayOrder, ...game.dungeonDisplayOrder];
+        const area = areas.find(a => a.monsters.find(m => m.id === mostDangerousMonster.monsterId));
+        let areaName = area ? area.name : "Unknown";
+
         this.currentSurvivabilityState = {
             maxHit: mostDangerousMonster.maxHit,
             effectiveMaxHit: mostDangerousMonster.effectiveMaxHit,
             maxHitReason: mostDangerousMonster.whatMakesMeDangerous(),
             canDie: mostDangerousMonster.effectiveMaxHit >= autoEatThreshold,
-            autoEatThreshold
+            autoEatThreshold,
+            areaName
+        }
+        this.pendingRecalculation = false;
+        this._reRender();
+    }
+
+    _handleTButton(e) {
+        if(e.target.classList.contains('cr-active')) {
+            this.targetMonster = null;
+            this.targetArea = null;
+            this.targetSlayerTask = null;
+            this.recalculateSurvivability("Target set to null", "NONE", null);
+            e.target.classList.remove('cr-active');
+            return true;
         }
 
-        this._reRender();
+        const areaTElements = document.querySelectorAll('.combat-resolver-set-area-target');
+        const monsterTElements = document.querySelectorAll('.combat-resolver-set-monster-target');
+        const slayerTaskTElements = document.querySelectorAll('.combat-resolver-set-slayer-task-target');
+        const TElements = [...areaTElements, ...monsterTElements, ...slayerTaskTElements];
+
+        TElements.forEach((e) => {
+            e.classList.remove('cr-active');
+        })
+        
+        e.target.classList.add('cr-active');
+
+        return false;
     }
 }

@@ -19,6 +19,63 @@
     background-color: #29a877;
 }
 
+.combat-resolver-set-monster-target {
+    width: 31px;
+    height: 31px;
+    background-color: #3261cf;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 16%), 0 1px 3px rgb(0 0 0 / 23%);
+    text-align: center;
+    line-height: 33px;
+    font-weight: bold;
+    border-radius: 2px;
+    display: inline-block;
+    transform: translateY(2px);
+    margin-left: 10px;
+}
+
+.combat-resolver-set-monster-target:hover {
+    background-color: #29a877;
+}
+.combat-resolver-set-monster-target.cr-active {
+    background-color: #29a877;
+}
+
+.combat-resolver-set-slayer-task-target {
+    width: 31px;
+    height: 31px;
+    background-color: #3261cf;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 16%), 0 1px 3px rgb(0 0 0 / 23%);
+    text-align: center;
+    line-height: 33px;
+    font-weight: bold;
+    border-radius: 2px;
+    float: right;
+}
+
+.combat-resolver-set-slayer-task-target:hover {
+    background-color: #29a877;
+}
+.combat-resolver-set-slayer-task-target.cr-active {
+    background-color: #29a877;
+}
+
+
+.wid-safety-factor {
+    color: #30c78d;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-weight: bolder;
+}
+
+.wid-safety-factor-danger {
+    color: #df4646 !important;
+}
+
+.wid-safety-factor-warning {
+    color: #f1c40f !important;
+}
+
 .combat-resolver-safe {
     color: #30c78d !important;
 }
@@ -29,6 +86,12 @@
 
 .combat-resolver-unknown {
     color: #f5f5f5 !important;
+}
+
+.combat-resolver-recalc {
+    color: #f1c40f !important;
+    box-shadow: 0 0 0 0 rgba(241, 196, 15, 1);
+    animation: wid-recalc-pulse 2s infinite;
 }
 
 #will-i-die-header-tab-dropdown > .dropdown-header {
@@ -57,7 +120,7 @@
 }
 
 .cr-hl-area {
-    color: #f1c40f;
+    color: rgb(241, 196, 15);
 }
 
 .cr-hl-dmg {
@@ -74,4 +137,22 @@
 
 .cr-hl-health {
     color: #16a085;
+}
+
+
+@keyframes wid-recalc-pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(241, 196, 15, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(241, 196, 15, 0);
+    }
 }
