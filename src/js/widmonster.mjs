@@ -112,12 +112,12 @@ export class WIDMonster {
 
         this.normalAttackMaxHit = this._calculateStandardMaxHit()
         this.dummyPlayer.computeDamageReduction();
-        this.effectiveNormalAttackMaxHit = Math.ceil(this.normalAttackMaxHit * this.totalDamageMultiplier * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
+        this.effectiveNormalAttackMaxHit = Math.ceil(this.normalAttackMaxHit * this.totalDamageMultiplier * this.safetyFactor * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
 
         this.specialAttacks = this.specialAttacks.map(specialAttack => {
             const maxHit = this._specialAttackDamage(specialAttack.originalSpecialAttack);
             this.dummyPlayer.computeDamageReduction();
-            const effectiveMaxHit = Math.ceil(maxHit * this.totalDamageMultiplier *  (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
+            const effectiveMaxHit = Math.ceil(maxHit * this.totalDamageMultiplier * this.safetyFactor * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
             
             return {
                 ...specialAttack,
@@ -190,7 +190,7 @@ export class WIDMonster {
                 calcDamage = dmg;
         });
         
-        return calcDamage * this.safetyFactor;
+        return calcDamage;
     }
 
     _getMaxDamage(damage) {
@@ -356,6 +356,6 @@ export class WIDMonster {
                 throw new Error();
         }
 
-        return maxHit * this.safetyFactor;
+        return maxHit;
     }
 }
