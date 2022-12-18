@@ -17,7 +17,7 @@ export async function setup(ctx) {
         hint: '',
         min: 0,
         max: 100,
-        default: 5,
+        default: 2,
         onChange: (newValue) => { 
             combatResolver.safetyFactor = 1 + (newValue / 100); 
             combatResolver.recalculateSurvivability("Settings changed"); 

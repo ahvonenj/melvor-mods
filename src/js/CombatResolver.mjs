@@ -12,7 +12,7 @@ export class CombatResolver {
     tabContent = null;
     safetyFactorElement = null;
 
-    safetyFactor = 1.05;
+    safetyFactor = 1.02;
     skipRequirements = false;
 
     pendingRecalculation = false;
@@ -115,13 +115,18 @@ export class CombatResolver {
 
     _printDebugValues() {
         if(!this._debug) return;
-        
+
         console.group('WILL I DIE DEBUG VALUES');
         console.log("Target area", this.targetArea);
+        console.log("Target Monster", this.targetMonster);
+        console.log("Target Slayer Task", this.targetSlayerTask);
         console.log("Current survivability state", this.currentSurvivabilityState);
         console.log("Monsters", this._debugValues.monsters);
         console.log("Most dangerous monster", this._debugValues.mostDangerousMonster);
         console.log("Player", this._debugValues.player);
+        console.log("Safety Factor", this.safetyFactor);
+        console.log("Skip Requirements", this.skipRequirements);
+        console.log("Pending Recalculation", this.pendingRecalculation);
         console.groupEnd();
     }
 
@@ -166,10 +171,13 @@ export class CombatResolver {
             maxHit,
             effectiveMaxHit,
             autoEatThreshold,
-            areaName
+            areaName,
+            playerIsWorseThanEnemy,
+            playerCanKillSelf,
+            playerSelfHit
         } = this.currentSurvivabilityState;
 
-        if(canDie) {
+        if(canDie || playerCanKillSelf) {
             this.tabButton.textContent = "DANGER";
             this.tabButton.classList.remove('combat-resolver-unknown');
             this.tabButton.classList.remove('combat-resolver-safe');
@@ -180,15 +188,27 @@ export class CombatResolver {
                 this.tabButton.classList.add('combat-resolver-recalc');
             }
 
-            this.tabContent.innerHTML = `<span class = "cr-hl cr-hl-warn">YOU COULD DIE.</span><br/><br/>
-            In the worst case, a monster named 
-            <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> in 
-            <span class = "cr-hl cr-hl-area">${areaName}</span> could perform 
-            <span class = "cr-hl cr-hl-spec">${maxHitReason.bestAttackName}</span> and hit you for 
-            <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> after damage reduction.<br/><br/>As
-            <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> is greater than your auto-eat threshold of 
-            <span class = "cr-hl cr-hl-health">${autoEatThreshold}</span>,
-            <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> could kill you.`;
+            if(playerIsWorseThanEnemy) {
+                this.tabContent.innerHTML = `<span class = "cr-hl cr-hl-warn">YOU COULD DIE.</span><br/><br/>
+                In the worst case, a player named 
+                <span class = "cr-hl cr-hl-enemy">${game.characterName}</span> in 
+                <span class = "cr-hl cr-hl-area">their mom's basement</span> could hit themselves for 
+                <span class = "cr-hl cr-hl-dmg">${playerSelfHit}</span>.<br/><br/>As
+                <span class = "cr-hl cr-hl-dmg">${playerSelfHit}</span> is greater than your auto-eat threshold of 
+                <span class = "cr-hl cr-hl-health">${autoEatThreshold}</span>,
+                <span class = "cr-hl cr-hl-enemy">this silly mistake</span> could kill you.`;
+            } else {
+                this.tabContent.innerHTML = `<span class = "cr-hl cr-hl-warn">YOU COULD DIE.</span><br/><br/>
+                In the worst case, a monster named 
+                <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> in 
+                <span class = "cr-hl cr-hl-area">${areaName}</span> could perform 
+                <span class = "cr-hl cr-hl-spec">${maxHitReason.bestAttackName}</span> and hit you for 
+                <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> after damage reduction.<br/><br/>As
+                <span class = "cr-hl cr-hl-dmg">${effectiveMaxHit}</span> is greater than your auto-eat threshold of 
+                <span class = "cr-hl cr-hl-health">${autoEatThreshold}</span>,
+                <span class = "cr-hl cr-hl-enemy">${maxHitReason.monsterName}</span> could kill you.`;
+            }
+            
 
             this._reRenderSafetyFactor();
         }
@@ -401,7 +421,7 @@ export class CombatResolver {
             this.recalculateSurvivability("Target slayer task changed", "SLAYER", monsters);
     }
 
-    recalculateSurvivability(reason = "", areaOrMonster, target, areaData = null) {
+    recalculateSurvivability(reason = "", areaOrMonster, target) {
 
         if(game.combat.fightInProgress || game.combat.isActive) {
             this._log(`WillIDie: Fight in progress, not calculating survivability`);
@@ -418,37 +438,43 @@ export class CombatResolver {
             return;
         }
 
+        const areas = [...game.combatAreaDisplayOrder, ...game.slayerAreaDisplayOrder, ...game.dungeonDisplayOrder];
+
         let widMonsters = [];
 
         if(areaOrMonster === "AREA") {
-            widMonsters = target.monsters.map(m => new WIDMonster(m.id, this.safetyFactor));
+            widMonsters = target.monsters.map(m => new WIDMonster(m.id, this.safetyFactor, target));
             this.targetArea = target;
             this.targetMonster = null;
             this.targetSlayerTask = null;
         } else if(areaOrMonster === "MONSTER") {
-            widMonsters = [new WIDMonster(target, this.safetyFactor)];
+            const areaForMonster = areas.find(a => a.monsters.find(m => m.id === target))
+            widMonsters = [new WIDMonster(target, this.safetyFactor, areaForMonster)];
             this.targetMonster = target;
             this.targetArea = null;
             this.targetSlayerTask = null;
         } else if(areaOrMonster === "SLAYER") {
-            widMonsters = target.map(m => new WIDMonster(m.id, this.safetyFactor));
+            const areaForMonster = areas.find(a => a.monsters.find(m => m.id === target[0].id))
+            widMonsters = target.map(m => new WIDMonster(m.id, this.safetyFactor, areaForMonster));
             this.targetSlayerTask = target;
             this.targetMonster = null;
             this.targetArea = null;
         } else {
             if(this.targetArea && !this.targetMonster && !this.targetSlayerTask) {
                 this._log(`WillIDie: Found unambiguous area target for cold function call, recalculating survivability`);
-                widMonsters = this.targetArea.monsters.map(m => new WIDMonster(m.id, this.safetyFactor));
+                widMonsters = this.targetArea.monsters.map(m => new WIDMonster(m.id, this.safetyFactor, this.targetArea));
                 areaOrMonster === "AREA";
                 target = this.targetArea;
             } else if(this.targetMonster && !this.targetArea && !this.targetSlayerTask) {
                 this._log(`WillIDie: Found unambiguous monster target for cold function call, recalculating survivability`);
-                widMonsters = [new WIDMonster(this.targetMonster, this.safetyFactor)];
+                const areaForMonster = areas.find(a => a.monsters.find(m => m.id === this.targetMonster))
+                widMonsters = [new WIDMonster(this.targetMonster, this.safetyFactor, areaForMonster)];
                 areaOrMonster === "MONSTER";
                 target = this.targetMonster;
             } else if(this.targetSlayerTask && !this.targetArea && !this.targetMonster) {
                 this._log(`WillIDie: Found unambiguous slayer target for cold function call, recalculating survivability`);
-                widMonsters = targetSlayerTask.map(m => new WIDMonster(m.id, this.safetyFactor));
+                const areaForMonster = areas.find(a => a.monsters.find(m => m.id === target[0].id))
+                widMonsters = targetSlayerTask.map(m => new WIDMonster(m.id, this.safetyFactor, areaForMonster));
                 areaOrMonster === "SLAYER";
                 target = this.targetSlayerTask;
             } else {
@@ -480,7 +506,9 @@ export class CombatResolver {
             this._debugValues.player.damageReduction = mostDangerousMonster._playerDamageReduction;
         }
 
-        const areas = [...game.combatAreaDisplayOrder, ...game.slayerAreaDisplayOrder, ...game.dungeonDisplayOrder];
+        const playerIsWorseThanEnemy = mostDangerousMonster.effectiveDamageTakenPerAttack > mostDangerousMonster.effectiveMaxHit;
+        const playerCanKillSelf = (mostDangerousMonster.effectiveDamageTakenPerAttack >= autoEatThreshold && playerIsWorseThanEnemy);
+
         const area = areas.find(a => a.monsters.find(m => m.id === mostDangerousMonster.monsterId));
         let areaName = area ? area.name : "Unknown";
 
@@ -490,7 +518,11 @@ export class CombatResolver {
             maxHitReason: mostDangerousMonster.whatMakesMeDangerous(),
             canDie: mostDangerousMonster.effectiveMaxHit >= autoEatThreshold,
             autoEatThreshold,
-            areaName
+            areaName,
+
+            playerSelfHit: mostDangerousMonster.effectiveDamageTakenPerAttack,
+            playerIsWorseThanEnemy,
+            playerCanKillSelf
         }
         this.pendingRecalculation = false;
         this._reRender();

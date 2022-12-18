@@ -1,6 +1,7 @@
 export class WIDMonster {
     monsterId = null;
     safetyFactor = 1;
+    monsterArea = null;
 
     gameClone = null;
 
@@ -16,6 +17,11 @@ export class WIDMonster {
     stunDamageMultiplier = 1;
     sleepDamageMultiplier = 1;
     totalDamageMultiplier = 1;
+
+    damageTakenPerAttackEffect = 0;
+    damageTakenPerAttack = 0;
+    effectiveDamageTakenPerAttack = 0;
+    monsterPassiveDecreasedPlayerDamageReduction = 0;
 
     combatTriangleMultiplier = 1;
 
@@ -37,9 +43,10 @@ export class WIDMonster {
     _playerAttackStyle = null;
     _playerDamageReduction = 0;
 
-    constructor(monsterId, safetyFactor = 1) {
+    constructor(monsterId, safetyFactor = 1, monsterArea) {
         this.monsterId = monsterId;
         this.safetyFactor = safetyFactor;
+        this.monsterArea = monsterArea;
 
         this.gameClone = $.extend(true, {}, game);
 
@@ -70,6 +77,32 @@ export class WIDMonster {
         this.attackStyle = this.dummyMonster.attackType;
 
         this.combatTriangleMultiplier = this._combatTriangleMultiplier();
+
+        // Yes very ugly, but it figures out if the monster has a passive that reduces player damage reduction
+        if(this.dummyMonster.passives.length > 0 && this.dummyMonster.passives
+            .some(p => Object.keys(p.modifiers)
+            .some(m => m === "decreasedPlayerDamageReduction"))) {
+
+            this.monsterPassiveDecreasedPlayerDamageReduction = 
+            this.dummyMonster.passives
+            .filter(p => Object.keys(p.modifiers)
+            .some(m => m === "decreasedPlayerDamageReduction"))[0]
+            .modifiers.decreasedPlayerDamageReduction;
+        } else {
+            this.monsterPassiveDecreasedPlayerDamageReduction = 0;
+        }
+
+        if(monsterArea.areaEffect.modifier === "increasedDamageTakenPerAttack") {
+            this.damageTakenPerAttackEffect = this.monsterArea.areaEffect.magnitude;
+            this.effectiveDamageTakenPerAttackEffect = this._slayerNegationForAreaEffect(this.damageTakenPerAttackEffect);
+            this.damageTakenPerAttack = Math.floor((this.dummyPlayer.stats.maxHitpoints * this.damageTakenPerAttackEffect) / 100);
+            this.effectiveDamageTakenPerAttack = Math.floor((this.dummyPlayer.stats.maxHitpoints * this.effectiveDamageTakenPerAttackEffect) / 100);
+        } else {
+            this.damageTakenPerAttackEffect = 0;
+            this.effectiveDamageTakenPerAttackEffect = 0;
+            this.damageTakenPerAttack = 0;
+            this.effectiveDamageTakenPerAttack = 0;
+        }
         
         this.dummyEnemy.availableAttacks.forEach(specialAttack => {
 
@@ -85,7 +118,7 @@ export class WIDMonster {
             specialAttack.attack.prehitEffects.some((e) => e.type === "Stun")) {
                 canStun = true;
                 this.canStun = true;
-                this.stunMult = 1.3;
+                this.stunDamageMultiplier = 1.3;
             }
 
             // When you are sleeping, monsters hit for 20% more
@@ -95,7 +128,7 @@ export class WIDMonster {
             specialAttack.attack.prehitEffects.some((e) => e.type === "Sleep")) {
                 canSleep = true;
                 this.canSleep = true;
-                this.sleepMult = 1.2;
+                this.sleepDamageMultiplier = 1.2;
             }
 
             this.specialAttacks.push({
@@ -112,12 +145,20 @@ export class WIDMonster {
 
         this.normalAttackMaxHit = this._calculateStandardMaxHit()
         this.dummyPlayer.computeDamageReduction();
-        this.effectiveNormalAttackMaxHit = Math.ceil(this.normalAttackMaxHit * this.totalDamageMultiplier * this.safetyFactor * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
+
+        const dmgs = this.normalAttackMaxHit * this.totalDamageMultiplier * safetyFactor;
+        const pred = this._playerDamageReduction - this.monsterPassiveDecreasedPlayerDamageReduction < 0 ? 0 : this._playerDamageReduction - this.monsterPassiveDecreasedPlayerDamageReduction;
+        const reds = (1 - (Math.floor(pred * this.combatTriangleMultiplier) / 100));
+        this.effectiveNormalAttackMaxHit = Math.round(dmgs * reds);
 
         this.specialAttacks = this.specialAttacks.map(specialAttack => {
             const maxHit = this._specialAttackDamage(specialAttack.originalSpecialAttack);
             this.dummyPlayer.computeDamageReduction();
-            const effectiveMaxHit = Math.ceil(maxHit * this.totalDamageMultiplier * this.safetyFactor * (1 - (this._playerDamageReduction * this.combatTriangleMultiplier / 100)));
+
+            const dmgs = maxHit * this.totalDamageMultiplier * safetyFactor;
+            const pred = this._playerDamageReduction - this.monsterPassiveDecreasedPlayerDamageReduction < 0 ? 0 : this._playerDamageReduction - this.monsterPassiveDecreasedPlayerDamageReduction;
+            const reds = (1 - (Math.floor(pred * this.combatTriangleMultiplier) / 100));
+            const effectiveMaxHit = Math.round(dmgs * reds);
             
             return {
                 ...specialAttack,
@@ -178,6 +219,14 @@ export class WIDMonster {
         }
 
         return explain;
+    }
+
+    _slayerNegationForAreaEffect(effect) {
+        const effectValue = effect - 
+        this.dummyPlayer.modifiers.increasedSlayerAreaEffectNegationFlat + 
+        this.dummyPlayer.modifiers.decreasedSlayerAreaEffectNegationFlat;
+
+        return Math.max(effectValue, 0);
     }
 
     _specialAttackDamage(attack) {
