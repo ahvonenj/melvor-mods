@@ -473,8 +473,8 @@ export class CombatResolver {
                 target = this.targetMonster;
             } else if(this.targetSlayerTask && !this.targetArea && !this.targetMonster) {
                 this._log(`WillIDie: Found unambiguous slayer target for cold function call, recalculating survivability`);
-                const areaForMonster = areas.find(a => a.monsters.find(m => m.id === target[0].id))
-                widMonsters = targetSlayerTask.map(m => new WIDMonster(m.id, this.safetyFactor, areaForMonster));
+                const areaForMonster = areas.find(a => a.monsters.find(m => m.id === this.targetSlayerTask[0].id))
+                widMonsters = this.targetSlayerTask.map(m => new WIDMonster(m.id, this.safetyFactor, areaForMonster));
                 areaOrMonster === "SLAYER";
                 target = this.targetSlayerTask;
             } else {
